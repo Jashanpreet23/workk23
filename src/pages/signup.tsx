@@ -19,7 +19,6 @@ function isStrongPassword(value: string): boolean {
   );
 }
 
-/** Minimal sign-up: email, password, role — localStorage only (no API, no database). */
 export default function SignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -74,9 +73,10 @@ export default function SignUp() {
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-10">
-      <h2 className="text-2xl font-bold text-slate-900">Sign up</h2>
+      <h2 className="text-2xl font-bold text-slate-900">Create your account</h2>
       <p className="mt-1 text-sm text-slate-500">
-        Create a Venue Vendors account. Your details are saved in this browser only (localStorage).
+        Tell us how you will use Venue Vendors. You can sign in anytime with the email and password
+        you choose here.
       </p>
 
       {success && (
@@ -84,11 +84,11 @@ export default function SignUp() {
           className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
           role="status"
         >
-          Account Registered. You can{" "}
+          You are all set.{" "}
           <Link href="/signin" className="font-medium text-emerald-900 underline">
-            sign in
+            Sign in
           </Link>{" "}
-          with the same email and password.
+          to continue.
         </p>
       )}
 
@@ -110,7 +110,7 @@ export default function SignUp() {
 
         <div>
           <label htmlFor="signup-role" className="block text-sm font-medium text-slate-700">
-            I am registering as
+            I am here to
           </label>
           <select
             id="signup-role"
@@ -118,8 +118,8 @@ export default function SignUp() {
             onChange={(e) => setRole(e.target.value as UserRole)}
             className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
           >
-            <option value="hirer">Hiring applicant (hirer)</option>
-            <option value="vendor">Venue vendor</option>
+            <option value="hirer">Book a venue for an event</option>
+            <option value="vendor">List or manage venues</option>
           </select>
         </div>
 

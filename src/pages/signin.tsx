@@ -13,21 +13,16 @@ export default function SignIn() {
     e.preventDefault();
     setError("");
 
-    // auth check that both fields are filled in
     if (!email || !password) {
-      setError("Please enter both email AND password");
+      setError("Enter your email and password to continue.");
       return;
     }
 
-    // validate email format
-    // TODO: make this with regex later
     if (!email.includes("@")) {
-      setError("Please enter a valid email address");
+      setError("That email does not look quite right.");
       return;
     }
-    
-    // validate strong password (8+ chars, uppercase, lowercase, number, special char)
-    // spec says to validate strong password on sign IN for some reason
+
     if (
       password.length < 8 ||
       !/[A-Z]/.test(password) ||
@@ -39,10 +34,9 @@ export default function SignIn() {
       return;
     }
 
-    // check credentials against localStorage
     const stored = localStorage.getItem("vv_users");
     if (!stored) {
-      setError("No users found");
+      setError("No account found yet. Create one on the sign-up page first.");
       return;
     }
 
@@ -52,11 +46,10 @@ export default function SignIn() {
     );
 
     if (!match) {
-      setError("Invalid email/password");
+      setError("We could not match that email and password. Try again or create an account.");
       return;
     }
 
-    // save who's logged in and redirect to their dashboard
     localStorage.setItem("vv_current_user", JSON.stringify(match));
     const dest = match.role === "hirer" ? "/hirer" : "/vendor";
     router.push(`${dest}?welcome=true`);
@@ -64,13 +57,12 @@ export default function SignIn() {
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-10">
-      <h2 className="text-2xl font-bold text-slate-900">Sign in</h2>
+      <h2 className="text-2xl font-bold text-slate-900">Welcome back</h2>
       <p className="mt-1 text-sm text-slate-500">
-        Sign into Venue Vendors
+        Sign in to manage your events or venues.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
-        {/* email field */}
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-slate-700">
             Email
@@ -85,7 +77,6 @@ export default function SignIn() {
           />
         </div>
 
-        {/* password field */}
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-slate-700">
             Password
@@ -100,7 +91,6 @@ export default function SignIn() {
           />
         </div>
 
-        {/* error message */}
         {error && (
           <p className="text-sm text-red-600">{error}</p>
         )}
@@ -114,7 +104,7 @@ export default function SignIn() {
       </form>
 
       <p className="mt-4 text-sm text-slate-500">
-        Dont have an account?{" "}
+        Don&apos;t have an account?{" "}
         <Link href="/signup" className="font-medium text-sky-600">
           Sign up
         </Link>

@@ -8,14 +8,14 @@ export default function Header({ links }: HeaderProps) {
   return (
     <header className="border-b border-slate-200 bg-white">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4 lg:px-8">
-        <div>
+        <Link href="/" className="rounded-md outline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-500">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
             Venue Vendors
           </p>
           <h1 className="text-lg font-bold text-slate-900">
-            Event Venue Hiring Portal
+            Find &amp; book event spaces
           </h1>
-        </div>
+        </Link>
 
         <nav aria-label="Main navigation">
           <ul className="flex items-center gap-2 sm:gap-3">

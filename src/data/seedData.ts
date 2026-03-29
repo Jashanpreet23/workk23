@@ -1,7 +1,4 @@
-/*
- * Venue Vendors client-side data (Assignment 1: localStorage only — no DB, no REST).
- * Dummy users seed on first visit; sign-up appends to the same vv_users list.
- */
+/* App user list: starter profiles on first load; sign-up adds more. */
 
 export type UserRole = "hirer" | "vendor";
 
