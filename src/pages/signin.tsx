@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { notifyAuthChanged, readUsersFromStorage } from "@/data/seedData";
+import {
+  notifyAuthChanged,
+  persistCurrentUser,
+  readUsersFromStorage,
+} from "@/data/seedData";
 
 export default function SignIn() {
   const router = useRouter();
@@ -55,7 +59,7 @@ export default function SignIn() {
       return;
     }
 
-    localStorage.setItem("vv_current_user", JSON.stringify(match));
+    persistCurrentUser(match);
     notifyAuthChanged();
     const dest = match.role === "hirer" ? "/hirer" : "/vendor";
     router.push(`${dest}?welcome=true`);

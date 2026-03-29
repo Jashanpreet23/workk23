@@ -9,7 +9,6 @@ import { seedLocalStorage } from "@/data/seedData";
  * individual pages only need to render their own content
  */
 export default function App({ Component, pageProps }: AppProps) {
-  // seed dummy users into localStorage on first visit
   useEffect(() => {
     seedLocalStorage();
   }, []);

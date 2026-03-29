@@ -1,4 +1,7 @@
-/* App user list: starter profiles on first load; sign-up adds more. */
+/**
+ * Assignment 1: all app data uses HTML5 localStorage (no database, no REST).
+ * Dummy registration rows (email + password + role) satisfy the PA brief; sign-up can append more.
+ */
 
 export type UserRole = "hirer" | "vendor";
 
@@ -9,7 +12,12 @@ export type User = {
   role: UserRole;
 };
 
-const users: User[] = [
+const KEY_USERS = "vv_users";
+const KEY_SEEDED = "vv_seeded";
+const KEY_CURRENT = "vv_current_user";
+
+/** Dummy accounts stored in localStorage for sign-in testing (PA requirement). */
+const seedUsers: User[] = [
   {
     name: "John Doe",
     email: "johndoe@example.com",
@@ -24,6 +32,21 @@ const users: User[] = [
   },
 ];
 
+function lsGet(key: string): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(key);
+}
+
+function lsSet(key: string, value: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(key, value);
+}
+
+function lsRemove(key: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(key);
+}
+
 function parseUser(raw: unknown): User | null {
   if (typeof raw !== "object" || raw === null) return null;
   const o = raw as Record<string, unknown>;
@@ -35,20 +58,9 @@ function parseUser(raw: unknown): User | null {
   return { name, email, password, role };
 }
 
-// writes users into localStorage on first visit
-// skips if already seeded so we don't overwrite anything
-export function seedLocalStorage(): void {
-  if (typeof window === "undefined") return;
-  if (localStorage.getItem("vv_seeded")) return;
-
-  localStorage.setItem("vv_users", JSON.stringify(users));
-  localStorage.setItem("vv_seeded", "true");
-}
-
-export function readUsersFromStorage(): User[] {
-  if (typeof window === "undefined") return [];
+function readValidUsersFromStorage(): User[] {
   try {
-    const raw = localStorage.getItem("vv_users");
+    const raw = lsGet(KEY_USERS);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return [];
@@ -60,9 +72,52 @@ export function readUsersFromStorage(): User[] {
   }
 }
 
-export function writeUsersToStorage(next: User[]): void {
+function ensureSeedUsersInStorage(): void {
+  const existing = readValidUsersFromStorage();
+  const seen = new Set(
+    existing.map((u) => u.email.trim().toLowerCase())
+  );
+  let changed = false;
+  const next = [...existing];
+  for (const demo of seedUsers) {
+    const key = demo.email.trim().toLowerCase();
+    if (!seen.has(key)) {
+      next.push(demo);
+      seen.add(key);
+      changed = true;
+    }
+  }
+  if (changed) {
+    lsSet(KEY_USERS, JSON.stringify(next));
+  }
+}
+
+/**
+ * First visit: write dummy `seedUsers` (or merge them in if `vv_users` already exists).
+ * Later: merge any missing demo rows so John/Bruce stay available alongside sign-ups.
+ */
+export function seedLocalStorage(): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem("vv_users", JSON.stringify(next));
+  if (!lsGet(KEY_SEEDED)) {
+    lsSet(KEY_SEEDED, "true");
+    if (lsGet(KEY_USERS) === null) {
+      lsSet(KEY_USERS, JSON.stringify(seedUsers));
+    } else {
+      ensureSeedUsersInStorage();
+    }
+    return;
+  }
+  ensureSeedUsersInStorage();
+}
+
+export function readUsersFromStorage(): User[] {
+  if (typeof window === "undefined") return [];
+  seedLocalStorage();
+  return readValidUsersFromStorage();
+}
+
+export function writeUsersToStorage(next: User[]): void {
+  lsSet(KEY_USERS, JSON.stringify(next));
 }
 
 /** Append one user if that email is not already registered (case-insensitive). */
@@ -83,11 +138,23 @@ export function registerUserLocal(candidate: User): "ok" | "duplicate" {
   return "ok";
 }
 
-/** Current session object stored under `vv_current_user` (same shape as User). */
+export function persistCurrentUser(user: User): void {
+  lsSet(KEY_CURRENT, JSON.stringify(user));
+}
+
+export function hasPersistedCurrentUser(): boolean {
+  return lsGet(KEY_CURRENT) !== null;
+}
+
+export function clearPersistedCurrentUser(): void {
+  lsRemove(KEY_CURRENT);
+}
+
 export function readSessionUser(): User | null {
   if (typeof window === "undefined") return null;
+  seedLocalStorage();
   try {
-    const raw = localStorage.getItem("vv_current_user");
+    const raw = lsGet(KEY_CURRENT);
     if (!raw) return null;
     return parseUser(JSON.parse(raw) as unknown);
   } catch {
@@ -95,7 +162,6 @@ export function readSessionUser(): User | null {
   }
 }
 
-/** Lets the header update right after sign-in / sign-out (same tab). */
 export const AUTH_CHANGED_EVENT = "vv-auth-changed";
 
 export function notifyAuthChanged(): void {
