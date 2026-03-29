@@ -20,6 +20,7 @@ function isStrongPassword(value: string): boolean {
 }
 
 export default function SignUp() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -32,12 +33,27 @@ export default function SignUp() {
     setError("");
     setSuccess(false);
 
-    if (!email.trim() || !password || !confirm) {
-      setError("Please fill in every field.");
+    const nameTrimmed = name.trim();
+    const emailTrimmed = email.trim();
+
+    if (!nameTrimmed) {
+      setError("Full name is required.");
+      return;
+    }
+    if (!emailTrimmed) {
+      setError("Email is required.");
+      return;
+    }
+    if (!password) {
+      setError("Password is required.");
+      return;
+    }
+    if (!confirm) {
+      setError("Please confirm your password.");
       return;
     }
 
-    if (!isValidEmail(email)) {
+    if (!isValidEmail(emailTrimmed)) {
       setError("Please enter a valid email address.");
       return;
     }
@@ -55,7 +71,8 @@ export default function SignUp() {
     }
 
     const candidate: User = {
-      email: email.trim(),
+      name: nameTrimmed,
+      email: emailTrimmed,
       password,
       role,
     };
@@ -75,8 +92,8 @@ export default function SignUp() {
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-10">
       <h2 className="text-2xl font-bold text-slate-900">Create your account</h2>
       <p className="mt-1 text-sm text-slate-500">
-        Tell us how you will use Venue Vendors. You can sign in anytime with the email and password
-        you choose here.
+        All fields marked with <span className="text-red-600">*</span> are required. You can sign in
+        anytime with the email and password you choose here.
       </p>
 
       {success && (
@@ -94,13 +111,34 @@ export default function SignUp() {
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
         <div>
+          <label htmlFor="signup-name" className="block text-sm font-medium text-slate-700">
+            Full name <span className="text-red-600" aria-hidden="true">*</span>
+          </label>
+          <input
+            id="signup-name"
+            name="name"
+            type="text"
+            autoComplete="name"
+            required
+            aria-required="true"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
+            placeholder="Alex Morgan"
+          />
+        </div>
+
+        <div>
           <label htmlFor="signup-email" className="block text-sm font-medium text-slate-700">
-            Email
+            Email <span className="text-red-600" aria-hidden="true">*</span>
           </label>
           <input
             id="signup-email"
+            name="email"
             type="email"
             autoComplete="email"
+            required
+            aria-required="true"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
@@ -110,10 +148,13 @@ export default function SignUp() {
 
         <div>
           <label htmlFor="signup-role" className="block text-sm font-medium text-slate-700">
-            I am here to
+            I am here to <span className="text-red-600" aria-hidden="true">*</span>
           </label>
           <select
             id="signup-role"
+            name="role"
+            required
+            aria-required="true"
             value={role}
             onChange={(e) => setRole(e.target.value as UserRole)}
             className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
@@ -125,12 +166,15 @@ export default function SignUp() {
 
         <div>
           <label htmlFor="signup-password" className="block text-sm font-medium text-slate-700">
-            Password
+            Password <span className="text-red-600" aria-hidden="true">*</span>
           </label>
           <input
             id="signup-password"
+            name="password"
             type="password"
             autoComplete="new-password"
+            required
+            aria-required="true"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
@@ -140,12 +184,15 @@ export default function SignUp() {
 
         <div>
           <label htmlFor="signup-confirm" className="block text-sm font-medium text-slate-700">
-            Confirm password
+            Confirm password <span className="text-red-600" aria-hidden="true">*</span>
           </label>
           <input
             id="signup-confirm"
+            name="confirmPassword"
             type="password"
             autoComplete="new-password"
+            required
+            aria-required="true"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"

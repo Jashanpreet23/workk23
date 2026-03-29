@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import type { User } from "@/data/seedData";
+import { notifyAuthChanged, readUsersFromStorage } from "@/data/seedData";
 
 export default function SignIn() {
   const router = useRouter();
@@ -13,12 +13,18 @@ export default function SignIn() {
     e.preventDefault();
     setError("");
 
-    if (!email || !password) {
-      setError("Enter your email and password to continue.");
+    const emailTrimmed = email.trim();
+
+    if (!emailTrimmed) {
+      setError("Email is required.");
+      return;
+    }
+    if (!password) {
+      setError("Password is required.");
       return;
     }
 
-    if (!email.includes("@")) {
+    if (!emailTrimmed.includes("@")) {
       setError("That email does not look quite right.");
       return;
     }
@@ -34,15 +40,14 @@ export default function SignIn() {
       return;
     }
 
-    const stored = localStorage.getItem("vv_users");
-    if (!stored) {
+    const users = readUsersFromStorage();
+    if (users.length === 0) {
       setError("No account found yet. Create one on the sign-up page first.");
       return;
     }
 
-    const users: User[] = JSON.parse(stored);
     const match = users.find(
-      (u) => u.email === email && u.password === password
+      (u) => u.email.trim() === emailTrimmed && u.password === password
     );
 
     if (!match) {
@@ -51,6 +56,7 @@ export default function SignIn() {
     }
 
     localStorage.setItem("vv_current_user", JSON.stringify(match));
+    notifyAuthChanged();
     const dest = match.role === "hirer" ? "/hirer" : "/vendor";
     router.push(`${dest}?welcome=true`);
   }
@@ -59,17 +65,22 @@ export default function SignIn() {
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-10">
       <h2 className="text-2xl font-bold text-slate-900">Welcome back</h2>
       <p className="mt-1 text-sm text-slate-500">
-        Sign in to manage your events or venues.
+        Sign in to manage your events or venues. Fields marked with{" "}
+        <span className="text-red-600">*</span> are required.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-slate-700">
-            Email
+            Email <span className="text-red-600" aria-hidden="true">*</span>
           </label>
           <input
             id="email"
+            name="email"
             type="email"
+            autoComplete="email"
+            required
+            aria-required="true"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
@@ -79,11 +90,15 @@ export default function SignIn() {
 
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-slate-700">
-            Password
+            Password <span className="text-red-600" aria-hidden="true">*</span>
           </label>
           <input
             id="password"
+            name="password"
             type="password"
+            autoComplete="current-password"
+            required
+            aria-required="true"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
