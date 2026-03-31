@@ -20,7 +20,8 @@ function isStrongPassword(value: string): boolean {
 }
 
 export default function SignUp() {
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -33,11 +34,16 @@ export default function SignUp() {
     setError("");
     setSuccess(false);
 
-    const nameTrimmed = name.trim();
+    const firstTrimmed = firstName.trim();
+    const lastTrimmed = lastName.trim();
     const emailTrimmed = email.trim();
 
-    if (!nameTrimmed) {
-      setError("Full name is required.");
+    if (!firstTrimmed) {
+      setError("First name is required.");
+      return;
+    }
+    if (!lastTrimmed) {
+      setError("Last name is required.");
       return;
     }
     if (!emailTrimmed) {
@@ -71,7 +77,8 @@ export default function SignUp() {
     }
 
     const candidate: User = {
-      name: nameTrimmed,
+      firstName: firstTrimmed,
+      lastName: lastTrimmed,
       email: emailTrimmed,
       password,
       role,
@@ -109,22 +116,41 @@ export default function SignUp() {
       )}
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
-        <div>
-          <label htmlFor="signup-name" className="block text-sm font-medium text-slate-700">
-            Full name <span className="text-red-600" aria-hidden="true">*</span>
-          </label>
-          <input
-            id="signup-name"
-            name="name"
-            type="text"
-            autoComplete="name"
-            required
-            aria-required="true"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
-            placeholder="Alex Morgan"
-          />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="signup-first" className="block text-sm font-medium text-slate-700">
+              First name <span className="text-red-600" aria-hidden="true">*</span>
+            </label>
+            <input
+              id="signup-first"
+              name="firstName"
+              type="text"
+              autoComplete="given-name"
+              required
+              aria-required="true"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
+              placeholder="Alex"
+            />
+          </div>
+          <div>
+            <label htmlFor="signup-last" className="block text-sm font-medium text-slate-700">
+              Last name <span className="text-red-600" aria-hidden="true">*</span>
+            </label>
+            <input
+              id="signup-last"
+              name="lastName"
+              type="text"
+              autoComplete="family-name"
+              required
+              aria-required="true"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
+              placeholder="Morgan"
+            />
+          </div>
         </div>
 
         <div>

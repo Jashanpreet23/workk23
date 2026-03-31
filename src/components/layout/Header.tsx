@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import type { User } from "@/data/seedData";
-import { AUTH_CHANGED_EVENT, readSessionUser } from "@/data/seedData";
+import {
+  AUTH_CHANGED_EVENT,
+  readSessionUser,
+  userDisplayName,
+} from "@/data/seedData";
 
 export default function Header() {
   const router = useRouter();
@@ -23,7 +27,7 @@ export default function Header() {
     };
   }, [router]);
 
-  const welcomeName = session?.name?.trim() || "";
+  const welcomeName = session ? userDisplayName(session) : "";
 
   return (
     <header className="border-b border-slate-200 bg-white">

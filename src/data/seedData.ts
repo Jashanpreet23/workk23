@@ -1,16 +1,22 @@
 /**
  * Assignment 1: all app data uses HTML5 localStorage (no database, no REST).
- * Dummy registration rows (email + password + role) satisfy the PA brief; sign-up can append more.
+ * Dummy registration rows (first name, last name, email + password + role) satisfy the PA brief; sign-up can append more.
  */
 
 export type UserRole = "hirer" | "vendor";
 
 export type User = {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   role: UserRole;
 };
+
+/** Display name for header and greetings. */
+export function userDisplayName(u: User): string {
+  return `${u.firstName} ${u.lastName}`.trim();
+}
 
 const KEY_USERS = "vv_users";
 const KEY_SEEDED = "vv_seeded";
@@ -19,13 +25,15 @@ const KEY_CURRENT = "vv_current_user";
 /** Dummy accounts stored in localStorage for sign-in testing (PA requirement). */
 const seedUsers: User[] = [
   {
-    name: "John Doe",
+    firstName: "John",
+    lastName: "Doe",
     email: "johndoe@example.com",
     password: "Johndoe@123",
     role: "hirer",
   },
   {
-    name: "Bruce Wayne",
+    firstName: "Bruce",
+    lastName: "Wayne",
     email: "batman@example.com",
     password: "Batman@123",
     role: "vendor",
@@ -50,12 +58,19 @@ function lsRemove(key: string): void {
 function parseUser(raw: unknown): User | null {
   if (typeof raw !== "object" || raw === null) return null;
   const o = raw as Record<string, unknown>;
-  const name = typeof o.name === "string" ? o.name.trim() : "";
+  let firstName = typeof o.firstName === "string" ? o.firstName.trim() : "";
+  let lastName = typeof o.lastName === "string" ? o.lastName.trim() : "";
+  const legacyName = typeof o.name === "string" ? o.name.trim() : "";
+  if (legacyName && (!firstName || !lastName)) {
+    const parts = legacyName.split(/\s+/).filter(Boolean);
+    if (!firstName) firstName = parts[0] ?? "";
+    if (!lastName) lastName = parts.length > 1 ? parts.slice(1).join(" ") : "";
+  }
   const email = typeof o.email === "string" ? o.email.trim() : "";
   const password = typeof o.password === "string" ? o.password : "";
   const role = o.role === "hirer" || o.role === "vendor" ? o.role : null;
-  if (!name || !email || !password || !role) return null;
-  return { name, email, password, role };
+  if (!firstName || !lastName || !email || !password || !role) return null;
+  return { firstName, lastName, email, password, role };
 }
 
 function readValidUsersFromStorage(): User[] {
@@ -132,7 +147,8 @@ export function registerUserLocal(candidate: User): "ok" | "duplicate" {
     {
       ...candidate,
       email: candidate.email.trim(),
-      name: candidate.name.trim(),
+      firstName: candidate.firstName.trim(),
+      lastName: candidate.lastName.trim(),
     },
   ]);
   return "ok";
