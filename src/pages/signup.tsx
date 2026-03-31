@@ -92,9 +92,7 @@ export default function SignUp() {
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-10">
       <h2 className="text-2xl font-bold text-slate-900">Create your account</h2>
       <p className="mt-1 text-sm text-slate-500">
-        All fields marked with <span className="text-red-600">*</span> are required. Your account
-        details are saved in this browser using HTML5 localStorage (same device; clearing site data
-        removes them).
+        All fields marked with <span className="text-red-600">*</span> are required.
       </p>
 
       {success && (
