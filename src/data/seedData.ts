@@ -11,6 +11,7 @@ export type User = {
   email: string;
   password: string;
   role: UserRole;
+  phone?: string;
 };
 
 /** Display name for header and greetings. */
@@ -21,6 +22,7 @@ export function userDisplayName(u: User): string {
 const KEY_USERS = "vv_users";
 const KEY_SEEDED = "vv_seeded";
 const KEY_CURRENT = "vv_current_user";
+const KEY_PREFERENCES = "vv_preferences";
 
 /** Dummy accounts stored in localStorage for sign-in testing (PA requirement). */
 const seedUsers: User[] = [
@@ -69,8 +71,9 @@ function parseUser(raw: unknown): User | null {
   const email = typeof o.email === "string" ? o.email.trim() : "";
   const password = typeof o.password === "string" ? o.password : "";
   const role = o.role === "hirer" || o.role === "vendor" ? o.role : null;
+  const phone = typeof o.phone === "string" ? o.phone.trim() : undefined;
   if (!firstName || !lastName || !email || !password || !role) return null;
-  return { firstName, lastName, email, password, role };
+  return { firstName, lastName, email, password, role, phone };
 }
 
 function readValidUsersFromStorage(): User[] {
@@ -184,4 +187,51 @@ export function notifyAuthChanged(): void {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
   }
+}
+
+// update a users profile fields (name, phone) in storage and session
+export function updateUserProfile(
+  email: string,
+  updates: { firstName?: string; lastName?: string; phone?: string }
+): void {
+  const users = readValidUsersFromStorage();
+  const idx = users.findIndex((u) => u.email.toLowerCase() === email.toLowerCase());
+  if (idx === -1) return;
+  if (updates.firstName !== undefined) users[idx].firstName = updates.firstName;
+  if (updates.lastName !== undefined) users[idx].lastName = updates.lastName;
+  if (updates.phone !== undefined) users[idx].phone = updates.phone;
+  writeUsersToStorage(users);
+
+  // also update the session so the header picks it up
+  const session = readSessionUser();
+  if (session && session.email.toLowerCase() === email.toLowerCase()) {
+    persistCurrentUser({ ...session, ...updates });
+    notifyAuthChanged();
+  }
+}
+
+// ---- venue preferences (shortlist) ----
+
+// get the hirers ranked venue list (stored per email)
+export function readPreferences(email: string): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = lsGet(KEY_PREFERENCES);
+    if (!raw) return [];
+    const map = JSON.parse(raw) as Record<string, string[]>;
+    return map[email] || [];
+  } catch {
+    return [];
+  }
+}
+
+// save the hirers ranked venue list
+export function savePreferences(email: string, venueIds: string[]): void {
+  let map: Record<string, string[]> = {};
+  try {
+    const raw = lsGet(KEY_PREFERENCES);
+    if (raw) map = JSON.parse(raw) as Record<string, string[]>;
+  } catch { /* ignore */ }
+  map[email] = venueIds;
+  lsSet(KEY_PREFERENCES, JSON.stringify(map));
 }
