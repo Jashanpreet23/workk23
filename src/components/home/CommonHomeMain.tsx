@@ -12,7 +12,7 @@ const quickStats: QuickStat[] = [
 ];
 
 const forHosts: string[] = [
-  "Browse spaces by capacity, location, and vibe—not endless email threads",
+  "Review pre-listed venues and compare details before you apply",
   "Submit one structured request with your date, guest count, and event details",
   "Track shortlists and confirmations in a single place",
 ];

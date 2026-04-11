@@ -2,6 +2,7 @@ import "@/styles/globals.css";
 import type { AppProps } from "next/app";
 import { useEffect } from "react";
 import Layout from "@/components/layout/Layout";
+import { seedBookingData } from "@/data/bookingData";
 import { seedLocalStorage } from "@/data/seedData";
 
 /*
@@ -11,6 +12,7 @@ import { seedLocalStorage } from "@/data/seedData";
 export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
     seedLocalStorage();
+    seedBookingData();
   }, []);
 
   return (
