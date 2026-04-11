@@ -20,7 +20,6 @@ export function userDisplayName(u: User): string {
 }
 
 const KEY_USERS = "vv_users";
-const KEY_SEEDED = "vv_seeded";
 const KEY_CURRENT = "vv_current_user";
 const KEY_PREFERENCES = "vv_preferences";
 
@@ -90,42 +89,12 @@ function readValidUsersFromStorage(): User[] {
   }
 }
 
-function ensureSeedUsersInStorage(): void {
-  const existing = readValidUsersFromStorage();
-  const seen = new Set(
-    existing.map((u) => u.email.trim().toLowerCase())
-  );
-  let changed = false;
-  const next = [...existing];
-  for (const demo of seedUsers) {
-    const key = demo.email.trim().toLowerCase();
-    if (!seen.has(key)) {
-      next.push(demo);
-      seen.add(key);
-      changed = true;
-    }
-  }
-  if (changed) {
-    lsSet(KEY_USERS, JSON.stringify(next));
-  }
-}
-
-/**
- * First visit: write dummy `seedUsers` (or merge them in if `vv_users` already exists).
- * Later: merge any missing demo rows so John/Bruce stay available alongside sign-ups.
- */
+/** Writes demo accounts only when nothing is stored yet. Clear storage to reset. */
 export function seedLocalStorage(): void {
   if (typeof window === "undefined") return;
-  if (!lsGet(KEY_SEEDED)) {
-    lsSet(KEY_SEEDED, "true");
-    if (lsGet(KEY_USERS) === null) {
-      lsSet(KEY_USERS, JSON.stringify(seedUsers));
-    } else {
-      ensureSeedUsersInStorage();
-    }
-    return;
+  if (!lsGet(KEY_USERS)) {
+    lsSet(KEY_USERS, JSON.stringify(seedUsers));
   }
-  ensureSeedUsersInStorage();
 }
 
 export function readUsersFromStorage(): User[] {

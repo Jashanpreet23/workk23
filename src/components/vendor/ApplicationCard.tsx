@@ -1,4 +1,3 @@
-/** PA vendor applicant card (task d): list detail, reputation, docs, select, comment, approve. */
 import { useEffect, useState } from "react";
 import type { CompliantDocument, PastHire, Venue, VenueApplication } from "@/data/bookingData";
 
@@ -29,6 +28,10 @@ type Props = {
   venue: Venue;
   history: PastHire[];
   documents: CompliantDocument[];
+  /** Average 0–5 from past hires; null = no rating (CR e.ii). */
+  reputationAverage: number | null;
+  /** Event date falls in a vendor-configured blackout (CR e.iii). */
+  eventDateBlocked: boolean;
   onToggleShortlist: (id: string, next: boolean) => void;
   onSaveNotes: (id: string, notes: string) => { ok: true } | { ok: false; message: string };
   onApprove: (id: string, notes: string) => { ok: true } | { ok: false; message: string };
@@ -39,6 +42,8 @@ export default function ApplicationCard({
   venue,
   history,
   documents,
+  reputationAverage,
+  eventDateBlocked,
   onToggleShortlist,
   onSaveNotes,
   onApprove,
@@ -106,6 +111,24 @@ export default function ApplicationCard({
             <span className="font-medium text-slate-700">{venue.name}</span> ·{" "}
             {venue.location} · capacity {venue.capacity}
           </p>
+          <p className="mt-2 text-sm text-slate-600">
+            Reputation (avg. from past hires):{" "}
+            {reputationAverage !== null ? (
+              <span className="font-semibold text-amber-600">
+                {reputationAverage} / 5 <span aria-hidden="true">★</span>
+              </span>
+            ) : (
+              <span className="text-slate-500">No rating</span>
+            )}
+          </p>
+          {eventDateBlocked && (
+            <p
+              className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-900"
+              role="status"
+            >
+              This event date falls within a blocked period for this venue (e.g. maintenance).
+            </p>
+          )}
         </div>
         <div className="flex flex-col items-end gap-2">
           {isApproved && (

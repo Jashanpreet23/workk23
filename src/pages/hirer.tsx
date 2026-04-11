@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/router";
 import Image from "next/image";
 import {
@@ -12,9 +12,13 @@ import {
   readApplications,
   writeApplications,
   readHirerHistory,
+  isVenueDateBlocked,
+  readVenueBlocksForVenue,
+  seedBookingData,
   type Venue,
   type VenueApplication,
   type PastHire,
+  type VenueBlock,
 } from "@/data/bookingData";
 
 // hirer dashboard shows venue list after sign in
@@ -32,7 +36,12 @@ export default function HirerDashboard() {
   const [showProfile, setShowProfile] = useState(false);
   const [showReputation, setShowReputation] = useState(false);
 
-  // load venues and preferences on mount
+  const refreshVenueList = useCallback(() => {
+    seedBookingData();
+    setVenues(readVenues());
+  }, []);
+
+  // load user + venues (clear localStorage to refresh demo catalogue)
   useEffect(() => {
     const user = readSessionUser();
     if (user) {
@@ -43,8 +52,8 @@ export default function HirerDashboard() {
       setPrefs(readPreferences(user.email));
       setHistory(readHirerHistory(user.email));
     }
-    setVenues(readVenues());
-  }, []);
+    refreshVenueList();
+  }, [refreshVenueList]);
 
   // hide the welcome banner after 3 seconds
   useEffect(() => {
@@ -272,10 +281,25 @@ function ApplyForm({
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const timeInputRef = useRef<HTMLInputElement>(null);
+  const [venueBlocks, setVenueBlocks] = useState<VenueBlock[]>(() =>
+    readVenueBlocksForVenue(venue.id)
+  );
+
+  useEffect(() => {
+    setVenueBlocks(readVenueBlocksForVenue(venue.id));
+  }, [venue.id]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    // Prefer live DOM value so we still capture time if Enter submitted the form before React state updated
+    const timeFromDom = timeInputRef.current?.value?.trim() ?? "";
+    const effectiveTime = time.trim() || timeFromDom;
+    if (timeFromDom && timeFromDom !== time) {
+      setTime(timeFromDom);
+    }
 
     // validate all the fields
     if (!eventName.trim()) { setError("Event name is required."); return; }
@@ -283,7 +307,11 @@ function ApplyForm({
     if (!guests || parseInt(guests) <= 0) { setError("Enter a valid number of guests."); return; }
     if (parseInt(guests) > venue.capacity) { setError(`This venue only fits ${venue.capacity} guests.`); return; }
     if (!date) { setError("Date is required."); return; }
-    if (!time) { setError("Time is required."); return; }
+    if (isVenueDateBlocked(venue.id, date)) {
+      setError("Selected date/time is unavailable.");
+      return;
+    }
+    if (!effectiveTime) { setError("Time is required (e.g. 21:00 for 9 pm)."); return; }
     if (!duration || parseFloat(duration) <= 0) { setError("Enter a valid duration in hours."); return; }
     if (!phone.trim() || !/^[\d\s\-+()]{6,15}$/.test(phone.trim())) { setError("Enter a valid phone number."); return; }
 
@@ -299,7 +327,7 @@ function ApplyForm({
       eventType: eventType.trim(),
       expectedGuests: parseInt(guests),
       eventDate: date,
-      startTime: time,
+      startTime: effectiveTime,
       durationHours: parseFloat(duration),
       status: "pending",
       vendorShortlisted: false,
@@ -326,7 +354,17 @@ function ApplyForm({
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
+          <form
+            onSubmit={handleSubmit}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              const t = e.target as HTMLElement;
+              if (t.tagName === "TEXTAREA") return;
+              if (t.tagName === "BUTTON") return;
+              e.preventDefault();
+            }}
+            className="mt-4 flex flex-col gap-3"
+          >
             <div>
               <label className="block text-sm font-medium text-slate-700">Event name</label>
               <input type="text" value={eventName} onChange={(e) => setEventName(e.target.value)}
@@ -343,14 +381,58 @@ function ApplyForm({
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="e.g. 50" min="1" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700">Date</label>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              <label htmlFor="apply-event-date" className="block text-sm font-medium text-slate-700">
+                Date
+              </label>
+              <input
+                id="apply-event-date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+              {venueBlocks.length > 0 && (
+                <div
+                  className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950"
+                  role="note"
+                >
+                  <p className="font-medium">Not available due to vendor maintenance / blackout:</p>
+                  <ul className="mt-1 list-inside list-disc space-y-0.5">
+                    {venueBlocks.map((b) => (
+                      <li key={b.id}>
+                        {b.startDate} to {b.endDate}
+                        {b.note ? ` — ${b.note}` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-1 text-amber-900/90">
+                    If you pick one of these days, the form will not submit.
+                  </p>
+                </div>
+              )}
+              {date && isVenueDateBlocked(venue.id, date) && (
+                <p className="mt-2 text-sm text-red-600" role="alert">
+                  This date is unavailable for this venue.
+                </p>
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700">Time</label>
-              <input type="time" value={time} onChange={(e) => setTime(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              <label htmlFor="apply-start-time" className="block text-sm font-medium text-slate-700">
+                Start time
+              </label>
+              <input
+                id="apply-start-time"
+                ref={timeInputRef}
+                type="time"
+                step={60}
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                24-hour picker (e.g. 21:00 = 9 pm). Use the Submit button—pressing Enter in a field
+                will not send the form early.
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700">Duration (hours)</label>

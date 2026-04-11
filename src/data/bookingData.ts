@@ -1,5 +1,5 @@
 /**
- * PA (Pass) scope: venue applications, hirer hire history + compliant-doc summaries, venue catalogue.
+ * Venue applications, hire history, compliant-doc summaries, venue catalogue, and (CR) venue blocks.
  * Persisted in localStorage (Assignment 1 — no REST, no database).
  */
 
@@ -51,7 +51,16 @@ const KEY_VENUES = "vv_venues";
 const KEY_APPLICATIONS = "vv_applications";
 const KEY_HIRER_HISTORY = "vv_hirer_history";
 const KEY_HIRER_DOCS = "vv_hirer_docs";
-const KEY_BOOKING_MERGED = "vv_booking_seed_merged";
+const KEY_VENUE_BLOCKS = "vv_venue_blocks";
+
+/** Vendor maintenance / blackout window (CR e.iii). Dates YYYY-MM-DD inclusive. */
+export type VenueBlock = {
+  id: string;
+  venueId: string;
+  startDate: string;
+  endDate: string;
+  note: string;
+};
 
 function lsGet(key: string): string | null {
   if (typeof window === "undefined") return null;
@@ -84,6 +93,48 @@ const seedVenues: Venue[] = [
     location: "South Yarra, Melbourne",
     capacity: 220,
     suitability: "Weddings, milestone celebrations, outdoor corporate events",
+  },
+  {
+    id: "ven-loft",
+    name: "Collins Street Loft",
+    location: "Melbourne CBD",
+    capacity: 95,
+    suitability: "Intimate launches, workshops, private dinners, film screenings",
+  },
+  {
+    id: "ven-gallery",
+    name: "Northside Gallery Events",
+    location: "Brunswick, Melbourne",
+    capacity: 140,
+    suitability: "Exhibitions, cocktail receptions, creative industry events",
+  },
+  {
+    id: "ven-rooftop",
+    name: "Skyline Rooftop Terrace",
+    location: "Carlton, Melbourne",
+    capacity: 160,
+    suitability: "Sunset drinks, summer parties, brand activations with city views",
+  },
+  {
+    id: "ven-pavilion",
+    name: "Fitzroy Community Pavilion",
+    location: "Fitzroy, Melbourne",
+    capacity: 200,
+    suitability: "Community fairs, markets, live music, family-friendly gatherings",
+  },
+  {
+    id: "ven-studios",
+    name: "Richmond Creative Studios",
+    location: "Richmond, Melbourne",
+    capacity: 75,
+    suitability: "Photo/video shoots, small team offsites, podcast recordings",
+  },
+  {
+    id: "ven-heritage",
+    name: "Old Town Hall Ballroom",
+    location: "Prahran, Melbourne",
+    capacity: 280,
+    suitability: "Formal balls, large dinners, awards nights, heritage charm",
   },
 ];
 
@@ -139,6 +190,57 @@ const seedApplications: VenueApplication[] = [
     vendorShortlisted: false,
     vendorNotes: "",
   },
+  {
+    id: "app-star-gala",
+    hirerEmail: "starclient@example.com",
+    hirerFirstName: "Morgan",
+    hirerLastName: "Lee",
+    hirerPhone: "0401 222 333",
+    venueId: "ven-harbour",
+    eventName: "Awards gala evening",
+    eventType: "Formal dinner",
+    expectedGuests: 200,
+    eventDate: "2026-04-10",
+    startTime: "18:00",
+    durationHours: 6,
+    status: "pending",
+    vendorShortlisted: false,
+    vendorNotes: "",
+  },
+  {
+    id: "app-low-meetup",
+    hirerEmail: "budgethosts@example.com",
+    hirerFirstName: "Riley",
+    hirerLastName: "Nguyen",
+    hirerPhone: "0402 444 555",
+    venueId: "ven-river",
+    eventName: "Community meet-up",
+    eventType: "Informal gathering",
+    expectedGuests: 80,
+    eventDate: "2026-06-01",
+    startTime: "14:00",
+    durationHours: 3,
+    status: "pending",
+    vendorShortlisted: false,
+    vendorNotes: "",
+  },
+  {
+    id: "app-first-timer",
+    hirerEmail: "firstevent@example.com",
+    hirerFirstName: "Sam",
+    hirerLastName: "Taylor",
+    hirerPhone: "0403 666 777",
+    venueId: "ven-botanic",
+    eventName: "Garden party",
+    eventType: "Private celebration",
+    expectedGuests: 40,
+    eventDate: "2026-08-15",
+    startTime: "12:00",
+    durationHours: 5,
+    status: "pending",
+    vendorShortlisted: false,
+    vendorNotes: "",
+  },
 ];
 
 const seedHistory: Record<string, PastHire[]> = {
@@ -156,6 +258,31 @@ const seedHistory: Record<string, PastHire[]> = {
       eventName: "Design week showcase",
       hireDate: "2025-01-15",
       ratingOutOf5: 4,
+    },
+  ],
+  "starclient@example.com": [
+    {
+      venueName: "Grand Hall Collins",
+      location: "Melbourne CBD",
+      eventName: "Annual charity ball",
+      hireDate: "2024-11-20",
+      ratingOutOf5: 5,
+    },
+    {
+      venueName: "Riverside Pavilion",
+      location: "Docklands",
+      eventName: "Product celebration",
+      hireDate: "2025-08-03",
+      ratingOutOf5: 5,
+    },
+  ],
+  "budgethosts@example.com": [
+    {
+      venueName: "Neighbourhood Hall",
+      location: "Brunswick",
+      eventName: "Local mixer",
+      hireDate: "2024-02-14",
+      ratingOutOf5: 2,
     },
   ],
 };
@@ -282,80 +409,14 @@ function readApplicationsFromStorage(): VenueApplication[] {
   }
 }
 
-function mergeSeeds(): void {
-  if (typeof window === "undefined") return;
-  const firstMerge = !lsGet(KEY_BOOKING_MERGED);
-
-  if (!lsGet(KEY_VENUES)) {
-    lsSet(KEY_VENUES, JSON.stringify(seedVenues));
-  } else {
-    mergeVenues();
-  }
-
-  if (!lsGet(KEY_APPLICATIONS)) {
-    lsSet(KEY_APPLICATIONS, JSON.stringify(seedApplications));
-  } else {
-    mergeApplications();
-  }
-
-  if (!lsGet(KEY_HIRER_HISTORY)) {
-    lsSet(KEY_HIRER_HISTORY, JSON.stringify(seedHistory));
-  }
-
-  if (!lsGet(KEY_HIRER_DOCS)) {
-    lsSet(KEY_HIRER_DOCS, JSON.stringify(seedDocs));
-  }
-
-  if (firstMerge) {
-    lsSet(KEY_BOOKING_MERGED, "true");
-  }
-}
-
-function mergeVenues(): void {
-  const existing = readVenuesFromStorage();
-  const seen = new Set(existing.map((v) => v.id));
-  const next = [...existing];
-  for (const v of seedVenues) {
-    if (!seen.has(v.id)) {
-      next.push(v);
-      seen.add(v.id);
-    }
-  }
-  lsSet(KEY_VENUES, JSON.stringify(next));
-}
-
-function mergeApplications(): void {
-  const existing = readApplicationsFromStorage();
-  const seen = new Set(existing.map((a) => a.id));
-  const next = [...existing];
-  for (const a of seedApplications) {
-    if (!seen.has(a.id)) {
-      next.push(a);
-      seen.add(a.id);
-    }
-  }
-  lsSet(KEY_APPLICATIONS, JSON.stringify(next));
-}
-
+/** One-time seed per key. Clear localStorage to pick up new demo data. */
 export function seedBookingData(): void {
   if (typeof window === "undefined") return;
-  mergeSeeds();
-  mergeVenues();
-  mergeApplications();
-  if (!lsGet(KEY_HIRER_HISTORY)) {
-    lsSet(KEY_HIRER_HISTORY, JSON.stringify(seedHistory));
-  }
-  if (!lsGet(KEY_HIRER_DOCS)) {
-    lsSet(KEY_HIRER_DOCS, JSON.stringify(seedDocs));
-  }
-}
-
-export const BOOKING_DATA_CHANGED_EVENT = "vv-booking-data-changed";
-
-export function notifyBookingDataChanged(): void {
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new Event(BOOKING_DATA_CHANGED_EVENT));
-  }
+  if (!lsGet(KEY_VENUES)) lsSet(KEY_VENUES, JSON.stringify(seedVenues));
+  if (!lsGet(KEY_APPLICATIONS)) lsSet(KEY_APPLICATIONS, JSON.stringify(seedApplications));
+  if (!lsGet(KEY_HIRER_HISTORY)) lsSet(KEY_HIRER_HISTORY, JSON.stringify(seedHistory));
+  if (!lsGet(KEY_HIRER_DOCS)) lsSet(KEY_HIRER_DOCS, JSON.stringify(seedDocs));
+  if (!lsGet(KEY_VENUE_BLOCKS)) lsSet(KEY_VENUE_BLOCKS, JSON.stringify([]));
 }
 
 export function readVenues(): Venue[] {
@@ -374,7 +435,6 @@ export function readApplications(): VenueApplication[] {
 
 export function writeApplications(next: VenueApplication[]): void {
   lsSet(KEY_APPLICATIONS, JSON.stringify(next));
-  notifyBookingDataChanged();
 }
 
 export function updateApplication(
@@ -466,4 +526,111 @@ export function readHirerDocuments(hirerEmail: string): CompliantDocument[] {
   } catch {
     return [];
   }
+}
+
+function parseVenueBlock(item: unknown): VenueBlock | null {
+  if (typeof item !== "object" || item === null) return null;
+  const o = item as Record<string, unknown>;
+  const id = typeof o.id === "string" ? o.id.trim() : "";
+  const venueId = typeof o.venueId === "string" ? o.venueId.trim() : "";
+  const startDate = typeof o.startDate === "string" ? o.startDate.trim() : "";
+  const endDate = typeof o.endDate === "string" ? o.endDate.trim() : "";
+  const note = typeof o.note === "string" ? o.note.trim() : "";
+  if (!id || !venueId || !startDate || !endDate) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+    return null;
+  }
+  if (startDate > endDate) return null;
+  return { id, venueId, startDate, endDate, note };
+}
+
+function readVenueBlocksFromStorage(): VenueBlock[] {
+  try {
+    const raw = lsGet(KEY_VENUE_BLOCKS);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map(parseVenueBlock)
+      .filter((b): b is VenueBlock => b !== null);
+  } catch {
+    return [];
+  }
+}
+
+export function readVenueBlocks(): VenueBlock[] {
+  seedBookingData();
+  return readVenueBlocksFromStorage();
+}
+
+export function readVenueBlocksForVenue(venueId: string): VenueBlock[] {
+  const vid = venueId.trim();
+  return readVenueBlocks().filter((b) => b.venueId === vid);
+}
+
+function writeVenueBlocksRaw(blocks: VenueBlock[]): void {
+  lsSet(KEY_VENUE_BLOCKS, JSON.stringify(blocks));
+}
+
+export function addVenueBlock(
+  venueId: string,
+  startDate: string,
+  endDate: string,
+  note: string
+): { ok: true; id: string } | { ok: false; message: string } {
+  seedBookingData();
+  const vid = venueId.trim();
+  if (!getVenueById(vid)) {
+    return { ok: false, message: "Unknown venue." };
+  }
+  const s = startDate.trim();
+  const e = endDate.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s) || !/^\d{4}-\d{2}-\d{2}$/.test(e)) {
+    return { ok: false, message: "Use valid start and end dates (YYYY-MM-DD)." };
+  }
+  if (s > e) {
+    return { ok: false, message: "Start date must be on or before end date." };
+  }
+  const id = `blk-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  const next: VenueBlock[] = [
+    ...readVenueBlocksFromStorage(),
+    {
+      id,
+      venueId: vid,
+      startDate: s,
+      endDate: e,
+      note: note.trim().slice(0, 200),
+    },
+  ];
+  writeVenueBlocksRaw(next);
+  return { ok: true, id };
+}
+
+export function removeVenueBlock(id: string): void {
+  seedBookingData();
+  const next = readVenueBlocksFromStorage().filter((b) => b.id !== id);
+  writeVenueBlocksRaw(next);
+}
+
+function dayStamp(isoDay: string): number {
+  return new Date(`${isoDay}T12:00:00`).getTime();
+}
+
+/** True when the event day falls inside a saved blackout for that venue (CR e.iii). */
+export function isVenueDateBlocked(venueId: string, eventDate: string): boolean {
+  const d = eventDate.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false;
+  const t = dayStamp(d);
+  return readVenueBlocks().some((b) => {
+    if (b.venueId !== venueId) return false;
+    return t >= dayStamp(b.startDate) && t <= dayStamp(b.endDate);
+  });
+}
+
+/** Average 0–5 star rating from past hires; null if none (CR e.ii). */
+export function hirerReputationAverage(hirerEmail: string): number | null {
+  const rows = readHirerHistory(hirerEmail);
+  if (rows.length === 0) return null;
+  const sum = rows.reduce((acc, h) => acc + h.ratingOutOf5, 0);
+  return Math.round((sum / rows.length) * 10) / 10;
 }
